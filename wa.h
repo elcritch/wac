@@ -150,7 +150,6 @@ typedef struct Module {
 // Function declarations (Public API)
 //
 
-extern char exception[];
 char *value_repr(StackValue *v);
 uint32_t get_export_fidx(Module *m, char *name);
 void (*setup_thunk_in(uint32_t fidx))();

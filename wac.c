@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
                 printf("%s\n", value_repr(&m->stack[m->sp]));
             }
         } else {
-            ERROR("Exception: %s\n", exception);
+            ERROR("Exception: %s\n", exception_msg());
             exit(1);
         }
     } else {
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
                     printf("%s\n", value_repr(&m->stack[m->sp]));
                 }
             } else {
-                ERROR("Exception: %s\n", exception);
+                ERROR("Exception: %s\n", exception_msg());
             }
             free(tokens);
         }

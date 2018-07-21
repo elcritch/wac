@@ -16,7 +16,6 @@ uint32_t LOAD_SIZE[] = {4, 8, 4, 8, 1, 1, 2, 2, 1, 1, 2, 2, 4, 4, // loads
                         4, 8, 4, 8, 1, 2, 1, 2, 4};               // stores
 
 // global exception message
-char exception[4096];
 
 // Static definition of block_types
 uint32_t block_type_results[4][1] = {I32, I64, F32, F64};
@@ -291,7 +290,7 @@ Block *pop_block(Module *m) {
     // Validate the return value
     if (t->result_count == 1) {
         if (m->stack[m->sp].value_type != t->results[0]) {
-            sprintf(exception, "call signature mismatch");
+            exception(EX_CALL_SIG_MISMATCH);
             return NULL;
         }
     }
@@ -523,7 +522,7 @@ bool interpret(Module *m) {
         // Control flow operators
         //
         case 0x00: // unreachable
-            sprintf(exception, "%s", "unreachable");
+            exception(EX_UNREACHABLE);
             return false;
         case 0x01: // nop
             continue;
@@ -663,7 +662,7 @@ bool interpret(Module *m) {
                 val = val - (uint32_t)m->table.entries;
             }
             if (val >= m->table.maximum) {
-                sprintf(exception, "undefined element 0x%x", val);
+                exception_arg(EX_UNDEFINED_ELEMENT, val);
                 return false;
             }
 
@@ -681,12 +680,12 @@ bool interpret(Module *m) {
                 // Validate signatures match
                 if (ftype->param_count + func->local_count !=
                     m->sp - m->fp + 1) {
-                    sprintf(exception, "indirect call signature mismatch");
+                    exception(EX_INDIRECT_CALL_SIGNATURE_MISMATCH);
                     return false;
                 }
                 for (uint32_t f = 0; f < ftype->param_count; f++) {
                     if (ftype->params[f] != m->stack[m->fp + f].value_type) {
-                        sprintf(exception, "indirect call signature mismatch");
+                        exception(EX_INDIRECT_CALL_SIGNATURE_MISMATCH);
                         return false;
                     }
                 }
@@ -800,7 +799,7 @@ bool interpret(Module *m) {
                 if (overflow) {
                     WARN("memory start: %p, memory end: %p, maddr: %p\n",
                          m->memory.bytes, mem_end, maddr);
-                    sprintf(exception, "out of bounds memory access");
+                    exception(EX_OUT_OF_BOUNDS_MEMORY_ACCESS);
                     return false;
                 }
             }
@@ -900,7 +899,7 @@ bool interpret(Module *m) {
                 if (overflow) {
                     WARN("memory start: %p, memory end: %p, maddr: %p\n",
                          m->memory.bytes, mem_end, maddr);
-                    sprintf(exception, "out of bounds memory access");
+                    exception(EX_OUT_OF_BOUNDS_MEMORY_ACCESS);
                     return false;
                 }
             }
@@ -1196,7 +1195,7 @@ bool interpret(Module *m) {
             b = stack[m->sp].value.uint32;
             m->sp -= 1;
             if (opcode >= 0x6d && opcode <= 0x70 && b == 0) {
-                sprintf(exception, "integer divide by zero");
+                exception(EX_DIV_BY_ZERO);
                 return false;
             }
             switch (opcode) {
@@ -1214,7 +1213,7 @@ bool interpret(Module *m) {
                 break; // i32.mul
             case 0x6d:
                 if (a == 0x80000000 && b == -1) {
-                    sprintf(exception, "integer overflow");
+                    exception(EX_INTEGER_OVERFLOW);
                     return false;
                 }
                 c = (int32_t)a / (int32_t)b;
@@ -1258,7 +1257,7 @@ bool interpret(Module *m) {
                 break; // i32.rotr
             }
             // if (o == 1) {
-            //    sprintf(exception, "integer overflow");
+            //    EXCEPTION( "integer overflow");
             //    return false;
             //}
             stack[m->sp].value.uint32 = c;
@@ -1270,7 +1269,7 @@ bool interpret(Module *m) {
             e = stack[m->sp].value.uint64;
             m->sp -= 1;
             if (opcode >= 0x7f && opcode <= 0x82 && e == 0) {
-                sprintf(exception, "integer divide by zero");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             switch (opcode) {
@@ -1285,7 +1284,7 @@ bool interpret(Module *m) {
                 break; // i64.mul
             case 0x7f:
                 if (d == 0x8000000000000000 && e == -1) {
-                    sprintf(exception, "integer overflow");
+                    exception(EX_INTEGER_OVERFLOW);
                     return false;
                 }
                 f = (int64_t)d / (int64_t)e;
@@ -1401,11 +1400,11 @@ bool interpret(Module *m) {
             break; // i32.wrap/i64
         case 0xa8:
             if (isnan(stack[m->sp].value.f32)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f32 >= INT32_MAX ||
                        stack[m->sp].value.f32 < INT32_MIN) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.int32 = stack[m->sp].value.f32;
@@ -1413,11 +1412,11 @@ bool interpret(Module *m) {
             break; // i32.trunc_s/f32
         case 0xa9:
             if (isnan(stack[m->sp].value.f32)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f32 >= UINT32_MAX ||
                        stack[m->sp].value.f32 <= -1) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.uint32 = stack[m->sp].value.f32;
@@ -1425,11 +1424,11 @@ bool interpret(Module *m) {
             break; // i32.trunc_u/f32
         case 0xaa:
             if (isnan(stack[m->sp].value.f64)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f64 > INT32_MAX ||
                        stack[m->sp].value.f64 < INT32_MIN) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.int32 = stack[m->sp].value.f64;
@@ -1437,11 +1436,11 @@ bool interpret(Module *m) {
             break; // i32.trunc_s/f64
         case 0xab:
             if (isnan(stack[m->sp].value.f64)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f64 > UINT32_MAX ||
                        stack[m->sp].value.f64 <= -1) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.uint32 = stack[m->sp].value.f64;
@@ -1458,11 +1457,11 @@ bool interpret(Module *m) {
             break; // i64.extend_u/i32
         case 0xae:
             if (isnan(stack[m->sp].value.f32)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f32 >= INT64_MAX ||
                        stack[m->sp].value.f32 < INT64_MIN) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.int64 = stack[m->sp].value.f32;
@@ -1470,11 +1469,11 @@ bool interpret(Module *m) {
             break; // i64.trunc_s/f32
         case 0xaf:
             if (isnan(stack[m->sp].value.f32)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f32 >= UINT64_MAX ||
                        stack[m->sp].value.f32 <= -1) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.uint64 = stack[m->sp].value.f32;
@@ -1482,11 +1481,11 @@ bool interpret(Module *m) {
             break; // i64.trunc_u/f32
         case 0xb0:
             if (isnan(stack[m->sp].value.f64)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f64 >= INT64_MAX ||
                        stack[m->sp].value.f64 < INT64_MIN) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.int64 = stack[m->sp].value.f64;
@@ -1494,11 +1493,11 @@ bool interpret(Module *m) {
             break; // i64.trunc_s/f64
         case 0xb1:
             if (isnan(stack[m->sp].value.f64)) {
-                sprintf(exception, "invalid conversion to integer");
+                exception(EX_INVALID_CONVERSION_TO_INT);
                 return false;
             } else if (stack[m->sp].value.f64 >= UINT64_MAX ||
                        stack[m->sp].value.f64 <= -1) {
-                sprintf(exception, "integer overflow");
+                exception(EX_INTEGER_OVERFLOW);
                 return false;
             }
             stack[m->sp].value.uint64 = stack[m->sp].value.f64;
@@ -1561,7 +1560,7 @@ bool interpret(Module *m) {
             break; // f64.reinterpret/i64
 
         default:
-            sprintf(exception, "unrecognized opcode 0x%x", opcode);
+            exception_arg(EX_UNKNOWN_OPCODE, opcode);
             return false;
         }
     }
@@ -2054,7 +2053,7 @@ Module *load_module(char *path, Options options) {
             result = interpret(m);
         }
         if (!result) {
-            FATAL("Exception: %s\n", exception);
+            FATAL("Exception: %s\n", exception_msg());
         }
     }
 

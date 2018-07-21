@@ -57,4 +57,21 @@ double wa_fmin(double a, double b);
 // Dynamic lib resolution
 bool resolvesym(char *filename, char *symbol, void **val, char **err);
 
+// Error handling stuff
+enum exceptions {
+    EX_CALL_SIG_MISMATCH = 0,
+    EX_UNREACHABLE,
+    EX_UNDEFINED_ELEMENT,
+    EX_INDIRECT_CALL_SIGNATURE_MISMATCH,
+    EX_OUT_OF_BOUNDS_MEMORY_ACCESS,
+    EX_DIV_BY_ZERO,
+    EX_INTEGER_OVERFLOW,
+    EX_UNKNOWN_OPCODE,
+    EX_INVALID_CONVERSION_TO_INT,
+};
+
+void exception(enum exceptions id);
+void exception_arg(enum exceptions id, long arg);
+char *exception_msg();
+
 #endif // of UTIL_H

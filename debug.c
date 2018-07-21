@@ -1,4 +1,5 @@
 
+#include "util.h"
 
 #ifdef WAC_TRACE
 
@@ -227,5 +228,51 @@ char OPERATOR_INFO[][20] = {
     "f32.reinterpret/i32", // 0xbe
     "f64.reinterpret/i64"  // 0xbf
 };
+
+char *EXCEPTION_INFO[] = {
+    "call signature mismatch",
+    "unreachable",
+    "undefined element 0x%x",
+    "indirect call signature mismatch",
+    "out of bounds memory access",
+    "integer divide by zero",
+    "integer overflow",
+    "unrecognized opcode 0x%x",
+    "invalid conversion to integer",
+};
+#endif
+
+#ifdef POSIX
+
+char exception_msg[4096];
+
+void exception(enum exceptions id) {
+    char *msg = EXCEPTION_INFO[id] sprintf(msg);
+}
+
+void exception_arg(enum exceptions id, long value) {
+    char *msg = EXCEPTION_INFO[id] sprintf(msg, value);
+}
+
+char *exception_msg() { return exception_msg; }
+
+#else
+
+enum exceptions exception_id = 0;
+long exception_val = 0;
+
+void exception(enum exceptions id) { exception_id = id; }
+
+void exception_arg(enum exceptions id, long value) {
+    exception_id = id;
+    exception_val = value;
+}
+
+char msg[8] = "error  ";
+
+char *exception_msg() {
+    msg[7] = exception_id + 97;
+    return msg;
+}
 
 #endif

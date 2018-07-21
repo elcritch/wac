@@ -41,7 +41,7 @@ thunks.o: thunks.h
 wa.a: util.o thunks.o
 
 
-wac: wac.c wa.a
+wac: wac.c wa.a debug.a
 	$(CC) -rdynamic $^ -o $@ $(foreach l,$(WAC_LIBS),-l$(l))
 
 wace: wace.c wa.a
