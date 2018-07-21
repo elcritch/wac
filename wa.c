@@ -779,15 +779,18 @@ bool interpret(Module *m) {
             flags = read_LEB(bytes, &m->pc, 32);
             offset = read_LEB(bytes, &m->pc, 32);
             addr = stack[m->sp--].value.uint32;
-            if (flags != 2 && WAC_TRACE) {
+
+            if (flags != 2) {
                 INFO("      - unaligned load - flags: 0x%x,"
                      " offset: 0x%x, addr: 0x%x\n",
                      flags, offset, addr);
             }
+
             if (offset + addr < addr) {
                 overflow = true;
             }
             maddr = m->memory.bytes + offset + addr;
+
             if (maddr < m->memory.bytes) {
                 overflow = true;
             }
@@ -797,6 +800,7 @@ bool interpret(Module *m) {
             }
             INFO("      - addr: 0x%x, offset: 0x%x, maddr: %p, mem_end: %p\n",
                  addr, offset, maddr, mem_end);
+
             if (!m->options.disable_memory_bounds) {
                 if (overflow) {
                     WARN("memory start: %p, memory end: %p, maddr: %p\n",
@@ -805,6 +809,7 @@ bool interpret(Module *m) {
                     return false;
                 }
             }
+
             stack[++m->sp].value.uint64 = 0; // initialize to 0
             switch (opcode) {
             case 0x28:
