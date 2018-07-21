@@ -29,15 +29,24 @@
     }
 
 #if WAC_TRACE
+
 #define TRACE(...) fprintf(stderr, __VA_ARGS__);
+#define TRACE_PARAMS(INIT, EXPR)                                               \
+    for (int p = INIT; p >= 0; p--) {                                          \
+        EXPR;                                                                  \
+    }
 #else
 #define TRACE(...) ;
+#define TRACE_PARAMS_REV(INIT, EXPR) ;
 #endif
 
 #if WAC_DEBUG
 #define DEBUG(...) fprintf(stderr, __VA_ARGS__);
+#define DEBUG_CALL(EXPR)                                                       \
+    { EXPR; }
 #else
 #define DEBUG(...) ;
+#define DEBUG_CALL(...) ;
 #endif
 
 #if WAC_INFO
