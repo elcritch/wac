@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main () {
+int main() {
     char *name;
     name = malloc(20);
     strncpy(name, "malloc people", 14);

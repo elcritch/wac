@@ -428,13 +428,11 @@ void thunk_out_F_FFI(Module *m, Block *function, Type *type);
 void thunk_out_F_FFf(Module *m, Block *function, Type *type);
 void thunk_out_F_FFF(Module *m, Block *function, Type *type);
 
-
 void thunk_out_0_iiii(Module *m, Block *function, Type *type);
 void thunk_out_i_iiii(Module *m, Block *function, Type *type);
 void thunk_out_i_iiiii(Module *m, Block *function, Type *type);
 void thunk_out_0_ffff(Module *m, Block *function, Type *type);
 void thunk_out_0_FFFFFF(Module *m, Block *function, Type *type);
-
 
 void thunk_in_0_0();
 void thunk_in_0_i(uint32_t a0);
