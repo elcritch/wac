@@ -345,7 +345,7 @@ void thunk_out(Module *m, uint32_t fidx) {
     WARN("  >>> thunk_out 0x%x(%d) %s.%s(", func->fidx, func->fidx,
          func->import_module, func->import_field);
     TRACE_PARAMS(type->param_count - 1,
-                 warn("%s%s", value_repr(&M->stack[M->sp - p]), p ? " " : ""));
+                 WARN("%s%s", value_repr(&M->stack[M->sp - p]), p ? " " : ""));
     WARN("), %d results\n", type->result_count);
     DEBUG("      thunk_mask: 0x%x\n", thunk_mask);
 
@@ -405,11 +405,9 @@ void thunk_out(Module *m, uint32_t fidx) {
         FATAL("unsupported thunk_out mask 0x%llx\n", thunk_mask);
     }
 
-    if (TRACE) {
-        WARN("  <<< thunk_out 0x%x(%d) %s.%s = %s\n", func->fidx, func->fidx,
+    WARN("  <<< thunk_out 0x%x(%d) %s.%s = %s\n", func->fidx, func->fidx,
              func->import_module, func->import_field,
              type->result_count > 0 ? value_repr(&m->stack[m->sp]) : "_");
-    }
 }
 
 //
@@ -431,11 +429,9 @@ void (*setup_thunk_in(uint32_t fidx))() {
     // Make space on the stack
     m->sp += type->param_count;
 
-    if (TRACE) {
         WARN(
             "  {{}} setup_thunk_in '%s', mask: 0x%x, ARGS FOR '>>' ARE BOGUS\n",
             func->export_name, thunk_mask);
-    }
 
     // Do normal function call setup. The fp will point to the start of stack
     // elements that were just added above
@@ -475,15 +471,12 @@ void setup_call(Module *m, uint32_t fidx) {
     // Push current frame on the call stack
     push_block(m, func, m->sp - type->param_count);
 
-    if (TRACE) {
-        WARN("  >> fn0x%x(%d) %s(", fidx, fidx,
-             func->export_name ? func->export_name : "");
-        for (int p = type->param_count - 1; p >= 0; p--) {
-            WARN("%s%s", value_repr(&m->stack[m->sp - p]), p ? " " : "");
-        }
-        WARN("), %d locals, %d results\n", func->local_count,
-             type->result_count);
-    }
+    WARN("  >> fn0x%x(%d) %s(", fidx, fidx,
+          func->export_name ? func->export_name : "");
+    TRACE_PARAMS(type->param_count - 1,
+                  WARN("%s%s", value_repr(&M->stack[M->sp - p]), p ? " " : ""));
+    WARN("), %d locals, %d results\n", func->local_count,
+          type->result_count);
 
     // Push locals (dropping extras)
     m->fp = m->sp - type->param_count + 1;
@@ -561,40 +554,33 @@ bool interpret(Module *m) {
                 }
             }
             // if true, keep going
-            if (TRACE) {
-                DEBUG("      - cond: 0x%x jump to 0x%x, block: %s\n", cond,
-                      m->pc, block_repr(block));
-            }
+            DEBUG("      - cond: 0x%x jump to 0x%x, block: %s\n", cond, m->pc, block_repr(block));
             continue;
         case 0x05: // else
             block = m->callstack[m->csp].block;
             m->pc = block->br_addr;
-            if (TRACE) {
-                DEBUG("      - of %s jump to 0x%x\n", block_repr(block), m->pc);
-            }
+            DEBUG("      - of %s jump to 0x%x\n", block_repr(block), m->pc);
             continue;
         case 0x0b: // end
             block = pop_block(m);
             if (block == NULL) {
                 return false; // an exception (set by pop_block)
             }
-            if (TRACE) {
                 DEBUG("      - of %s\n", block_repr(block));
-            }
             if (block->block_type == 0x00) { // Function
-                if (TRACE) {
-                    WARN("  << fn0x%x(%d) %s = %s\n", block->fidx, block->fidx,
+                WARN("  << fn0x%x(%d) %s = %s\n", block->fidx, block->fidx,
                          block->export_name ? block->export_name : "",
                          block->type->result_count > 0
                              ? value_repr(&m->stack[m->sp])
                              : "_");
-                }
+
                 if (m->csp == -1) {
                     // Return to top-level
                     return true;
                 } else {
                     // Keep going at return address
                 }
+
             } else if (block->block_type == 0x01) { // init_expr
                 return true;
             } else { // Block
@@ -606,9 +592,7 @@ bool interpret(Module *m) {
             m->csp -= depth;
             // set to end for pop_block
             m->pc = m->callstack[m->csp].block->br_addr;
-            if (TRACE) {
                 DEBUG("      - to: 0x%x\n", &m->pc);
-            }
             continue;
         case 0x0d: // br_if
             depth = read_LEB(bytes, &m->pc, 32);
@@ -619,10 +603,8 @@ bool interpret(Module *m) {
                 // set to end for pop_block
                 m->pc = m->callstack[m->csp].block->br_addr;
             }
-            if (TRACE) {
                 DEBUG("      - depth: 0x%x, cond: 0x%x, to: 0x%x\n", depth,
                       cond, m->pc);
-            }
             continue;
         case 0x0e: // br_table
             count = read_LEB(bytes, &m->pc, 32);
@@ -641,10 +623,8 @@ bool interpret(Module *m) {
             m->csp -= depth;
             // set to end for pop_block
             m->pc = m->callstack[m->csp].block->br_addr;
-            if (TRACE) {
                 DEBUG("      - count: %d, didx: %d, to: 0x%x\n", count, didx,
                       m->pc);
-            }
             continue;
         case 0x0f: // return
             while (m->csp >= 0 &&
@@ -654,9 +634,7 @@ bool interpret(Module *m) {
             // Set the program count to the end of the function
             // The actual pop_block and return is handled by the end opcode.
             m->pc = m->callstack[0].block->end_addr;
-            if (TRACE) {
                 DEBUG("      - to: 0x%x\n", m->pc);
-            }
             continue;
 
         //
@@ -669,10 +647,8 @@ bool interpret(Module *m) {
                 thunk_out(m, fidx); // import/thunk call
             } else {
                 setup_call(m, fidx); // regular function call
-                if (TRACE) {
                     DEBUG("      - calling function fidx: %d at: 0x%x\n", fidx,
                           m->pc);
-                }
             }
             continue;
         case 0x11:                              // call_indirect
@@ -682,12 +658,10 @@ bool interpret(Module *m) {
             if (m->options.mangle_table_index) {
                 // val is the table address + the index (not sized for the
                 // pointer size) so get the actual (sized) index
-                if (TRACE) {
                     DEBUG("      - entries: %p, original val: 0x%x, new val: "
                           "0x%x\n",
                           m->table.entries, val,
                           (uint32_t)m->table.entries - val);
-                }
                 val = val - (uint32_t)m->table.entries;
             }
             if (val < 0 || val >= m->table.maximum) {
@@ -696,11 +670,9 @@ bool interpret(Module *m) {
             }
 
             fidx = m->table.entries[val];
-            if (TRACE) {
                 DEBUG(
                     "       - call_indirect tidx: %d, val: 0x%x, fidx: 0x%x\n",
                     tidx, val, fidx);
-            }
 
             if (fidx < m->import_count) {
                 thunk_out(m, fidx); // import/thunk call
@@ -722,11 +694,9 @@ bool interpret(Module *m) {
                     }
                 }
 
-                if (TRACE) {
                     DEBUG("      - tidx: %d, table idx: %d, "
                           "calling function fidx: %d at: 0x%x\n",
                           tidx, val, fidx, m->pc);
-                }
             }
             continue;
 
@@ -749,43 +719,33 @@ bool interpret(Module *m) {
         //
         case 0x20: // get_local
             arg = read_LEB(bytes, &m->pc, 32);
-            if (TRACE) {
                 DEBUG("      - arg: 0x%x, got %s\n", arg,
                       value_repr(&stack[m->fp + arg]));
-            }
             stack[++m->sp] = stack[m->fp + arg];
             continue;
         case 0x21: // set_local
             arg = read_LEB(bytes, &m->pc, 32);
             stack[m->fp + arg] = stack[m->sp--];
-            if (TRACE) {
                 DEBUG("      - arg: 0x%x, to %s\n", arg,
                       value_repr(&stack[m->sp]));
-            }
             continue;
         case 0x22: // tee_local
             arg = read_LEB(bytes, &m->pc, 32);
             stack[m->fp + arg] = stack[m->sp];
-            if (TRACE) {
                 DEBUG("      - arg: 0x%x, to %s\n", arg,
                       value_repr(&stack[m->sp]));
-            }
             continue;
         case 0x23: // get_global
             arg = read_LEB(bytes, &m->pc, 32);
-            if (TRACE) {
                 DEBUG("      - arg: 0x%x, got %s\n", arg,
                       value_repr(&m->globals[arg]));
-            }
             stack[++m->sp] = m->globals[arg];
             continue;
         case 0x24: // set_global
             arg = read_LEB(bytes, &m->pc, 32);
             m->globals[arg] = stack[m->sp--];
-            if (TRACE) {
                 DEBUG("      - arg: 0x%x, to %s\n", arg,
                       value_repr(&m->globals[arg]));
-            }
             continue;
 
         //
@@ -819,7 +779,7 @@ bool interpret(Module *m) {
             flags = read_LEB(bytes, &m->pc, 32);
             offset = read_LEB(bytes, &m->pc, 32);
             addr = stack[m->sp--].value.uint32;
-            if (flags != 2 && TRACE) {
+            if (flags != 2 && WAC_TRACE) {
                 INFO("      - unaligned load - flags: 0x%x,"
                      " offset: 0x%x, addr: 0x%x\n",
                      flags, offset, addr);
@@ -917,7 +877,7 @@ bool interpret(Module *m) {
             offset = read_LEB(bytes, &m->pc, 32);
             StackValue *sval = &stack[m->sp--];
             addr = stack[m->sp--].value.uint32;
-            if (flags != 2 && TRACE) {
+            if (flags != 2 && WAC_TRACE) {
                 INFO("      - unaligned store - flags: 0x%x,"
                      " offset: 0x%x, addr: 0x%x, val: %s\n",
                      flags, offset, addr, value_repr(sval));
@@ -2055,8 +2015,10 @@ Module *load_module(char *path, Options options) {
                 function->start_addr = pos;
                 function->end_addr = payload_start + body_size - 1;
                 function->br_addr = function->end_addr;
+
                 ASSERT(bytes[function->end_addr] == 0x0b,
                        "Code section did not end with 0x0b\n");
+
                 pos = function->end_addr + 1;
             }
             break;
