@@ -406,8 +406,8 @@ void thunk_out(Module *m, uint32_t fidx) {
     }
 
     WARN("  <<< thunk_out 0x%x(%d) %s.%s = %s\n", func->fidx, func->fidx,
-             func->import_module, func->import_field,
-             type->result_count > 0 ? value_repr(&m->stack[m->sp]) : "_");
+         func->import_module, func->import_field,
+         type->result_count > 0 ? value_repr(&m->stack[m->sp]) : "_");
 }
 
 //
@@ -429,9 +429,8 @@ void (*setup_thunk_in(uint32_t fidx))() {
     // Make space on the stack
     m->sp += type->param_count;
 
-        WARN(
-            "  {{}} setup_thunk_in '%s', mask: 0x%x, ARGS FOR '>>' ARE BOGUS\n",
-            func->export_name, thunk_mask);
+    WARN("  {{}} setup_thunk_in '%s', mask: 0x%x, ARGS FOR '>>' ARE BOGUS\n",
+         func->export_name, thunk_mask);
 
     // Do normal function call setup. The fp will point to the start of stack
     // elements that were just added above
@@ -472,11 +471,10 @@ void setup_call(Module *m, uint32_t fidx) {
     push_block(m, func, m->sp - type->param_count);
 
     WARN("  >> fn0x%x(%d) %s(", fidx, fidx,
-          func->export_name ? func->export_name : "");
+         func->export_name ? func->export_name : "");
     TRACE_PARAMS(type->param_count - 1,
-                  WARN("%s%s", value_repr(&M->stack[M->sp - p]), p ? " " : ""));
-    WARN("), %d locals, %d results\n", func->local_count,
-          type->result_count);
+                 WARN("%s%s", value_repr(&M->stack[M->sp - p]), p ? " " : ""));
+    WARN("), %d locals, %d results\n", func->local_count, type->result_count);
 
     // Push locals (dropping extras)
     m->fp = m->sp - type->param_count + 1;
@@ -554,7 +552,8 @@ bool interpret(Module *m) {
                 }
             }
             // if true, keep going
-            DEBUG("      - cond: 0x%x jump to 0x%x, block: %s\n", cond, m->pc, block_repr(block));
+            DEBUG("      - cond: 0x%x jump to 0x%x, block: %s\n", cond, m->pc,
+                  block_repr(block));
             continue;
         case 0x05: // else
             block = m->callstack[m->csp].block;
@@ -566,13 +565,13 @@ bool interpret(Module *m) {
             if (block == NULL) {
                 return false; // an exception (set by pop_block)
             }
-                DEBUG("      - of %s\n", block_repr(block));
+            DEBUG("      - of %s\n", block_repr(block));
             if (block->block_type == 0x00) { // Function
                 WARN("  << fn0x%x(%d) %s = %s\n", block->fidx, block->fidx,
-                         block->export_name ? block->export_name : "",
-                         block->type->result_count > 0
-                             ? value_repr(&m->stack[m->sp])
-                             : "_");
+                     block->export_name ? block->export_name : "",
+                     block->type->result_count > 0
+                         ? value_repr(&m->stack[m->sp])
+                         : "_");
 
                 if (m->csp == -1) {
                     // Return to top-level
@@ -592,7 +591,7 @@ bool interpret(Module *m) {
             m->csp -= depth;
             // set to end for pop_block
             m->pc = m->callstack[m->csp].block->br_addr;
-                DEBUG("      - to: 0x%x\n", &m->pc);
+            DEBUG("      - to: 0x%x\n", &m->pc);
             continue;
         case 0x0d: // br_if
             depth = read_LEB(bytes, &m->pc, 32);
@@ -603,8 +602,8 @@ bool interpret(Module *m) {
                 // set to end for pop_block
                 m->pc = m->callstack[m->csp].block->br_addr;
             }
-                DEBUG("      - depth: 0x%x, cond: 0x%x, to: 0x%x\n", depth,
-                      cond, m->pc);
+            DEBUG("      - depth: 0x%x, cond: 0x%x, to: 0x%x\n", depth, cond,
+                  m->pc);
             continue;
         case 0x0e: // br_table
             count = read_LEB(bytes, &m->pc, 32);
@@ -623,8 +622,8 @@ bool interpret(Module *m) {
             m->csp -= depth;
             // set to end for pop_block
             m->pc = m->callstack[m->csp].block->br_addr;
-                DEBUG("      - count: %d, didx: %d, to: 0x%x\n", count, didx,
-                      m->pc);
+            DEBUG("      - count: %d, didx: %d, to: 0x%x\n", count, didx,
+                  m->pc);
             continue;
         case 0x0f: // return
             while (m->csp >= 0 &&
@@ -634,7 +633,7 @@ bool interpret(Module *m) {
             // Set the program count to the end of the function
             // The actual pop_block and return is handled by the end opcode.
             m->pc = m->callstack[0].block->end_addr;
-                DEBUG("      - to: 0x%x\n", m->pc);
+            DEBUG("      - to: 0x%x\n", m->pc);
             continue;
 
         //
@@ -647,8 +646,8 @@ bool interpret(Module *m) {
                 thunk_out(m, fidx); // import/thunk call
             } else {
                 setup_call(m, fidx); // regular function call
-                    DEBUG("      - calling function fidx: %d at: 0x%x\n", fidx,
-                          m->pc);
+                DEBUG("      - calling function fidx: %d at: 0x%x\n", fidx,
+                      m->pc);
             }
             continue;
         case 0x11:                              // call_indirect
@@ -658,10 +657,9 @@ bool interpret(Module *m) {
             if (m->options.mangle_table_index) {
                 // val is the table address + the index (not sized for the
                 // pointer size) so get the actual (sized) index
-                    DEBUG("      - entries: %p, original val: 0x%x, new val: "
-                          "0x%x\n",
-                          m->table.entries, val,
-                          (uint32_t)m->table.entries - val);
+                DEBUG("      - entries: %p, original val: 0x%x, new val: "
+                      "0x%x\n",
+                      m->table.entries, val, (uint32_t)m->table.entries - val);
                 val = val - (uint32_t)m->table.entries;
             }
             if (val < 0 || val >= m->table.maximum) {
@@ -670,9 +668,8 @@ bool interpret(Module *m) {
             }
 
             fidx = m->table.entries[val];
-                DEBUG(
-                    "       - call_indirect tidx: %d, val: 0x%x, fidx: 0x%x\n",
-                    tidx, val, fidx);
+            DEBUG("       - call_indirect tidx: %d, val: 0x%x, fidx: 0x%x\n",
+                  tidx, val, fidx);
 
             if (fidx < m->import_count) {
                 thunk_out(m, fidx); // import/thunk call
@@ -694,9 +691,9 @@ bool interpret(Module *m) {
                     }
                 }
 
-                    DEBUG("      - tidx: %d, table idx: %d, "
-                          "calling function fidx: %d at: 0x%x\n",
-                          tidx, val, fidx, m->pc);
+                DEBUG("      - tidx: %d, table idx: %d, "
+                      "calling function fidx: %d at: 0x%x\n",
+                      tidx, val, fidx, m->pc);
             }
             continue;
 
@@ -719,33 +716,31 @@ bool interpret(Module *m) {
         //
         case 0x20: // get_local
             arg = read_LEB(bytes, &m->pc, 32);
-                DEBUG("      - arg: 0x%x, got %s\n", arg,
-                      value_repr(&stack[m->fp + arg]));
+            DEBUG("      - arg: 0x%x, got %s\n", arg,
+                  value_repr(&stack[m->fp + arg]));
             stack[++m->sp] = stack[m->fp + arg];
             continue;
         case 0x21: // set_local
             arg = read_LEB(bytes, &m->pc, 32);
             stack[m->fp + arg] = stack[m->sp--];
-                DEBUG("      - arg: 0x%x, to %s\n", arg,
-                      value_repr(&stack[m->sp]));
+            DEBUG("      - arg: 0x%x, to %s\n", arg, value_repr(&stack[m->sp]));
             continue;
         case 0x22: // tee_local
             arg = read_LEB(bytes, &m->pc, 32);
             stack[m->fp + arg] = stack[m->sp];
-                DEBUG("      - arg: 0x%x, to %s\n", arg,
-                      value_repr(&stack[m->sp]));
+            DEBUG("      - arg: 0x%x, to %s\n", arg, value_repr(&stack[m->sp]));
             continue;
         case 0x23: // get_global
             arg = read_LEB(bytes, &m->pc, 32);
-                DEBUG("      - arg: 0x%x, got %s\n", arg,
-                      value_repr(&m->globals[arg]));
+            DEBUG("      - arg: 0x%x, got %s\n", arg,
+                  value_repr(&m->globals[arg]));
             stack[++m->sp] = m->globals[arg];
             continue;
         case 0x24: // set_global
             arg = read_LEB(bytes, &m->pc, 32);
             m->globals[arg] = stack[m->sp--];
-                DEBUG("      - arg: 0x%x, to %s\n", arg,
-                      value_repr(&m->globals[arg]));
+            DEBUG("      - arg: 0x%x, to %s\n", arg,
+                  value_repr(&m->globals[arg]));
             continue;
 
         //

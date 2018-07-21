@@ -5,15 +5,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifndef WAC_DEBUG 
+#ifndef WAC_DEBUG
 #define WAC_DEBUG 0
 #endif
 
-#ifndef  WAC_INFO
+#ifndef WAC_INFO
 #define WAC_INFO 0
 #endif
 
-#ifndef WAC_WARN 
+#ifndef WAC_WARN
 #define WAC_WARN 0
 #endif
 
