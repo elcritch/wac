@@ -37,7 +37,7 @@
     }
 #else
 #define TRACE(...) ;
-#define TRACE_PARAMS_REV(INIT, EXPR) ;
+#define TRACE_PARAMS(INIT, EXPR) ;
 #endif
 
 #if WAC_DEBUG

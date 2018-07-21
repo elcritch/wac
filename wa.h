@@ -4,6 +4,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef POSIX
+#include "debug_posix.h"
+#else
+#include "debug_posix.h"
+#endif
+
 #define WA_MAGIC 0x6d736100
 #define WA_VERSION 0x01
 
