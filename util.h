@@ -5,6 +5,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef POSIX
+#include "debug_posix.h"
+#else
+#include "debug_posix.h"
+#endif
+
 #ifndef WAC_DEBUG
 #define WAC_DEBUG 0
 #endif

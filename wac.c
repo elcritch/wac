@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
                 printf("%s\n", value_repr(&m->stack[m->sp]));
             }
         } else {
-            error("Exception: %s\n", exception);
+            ERROR("Exception: %s\n", exception);
             exit(1);
         }
     } else {
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
         if (optind < argc) {
             usage(argv[0]);
         }
-        while (line = readline("webassembly> ")) {
+        while ((line = readline("webassembly> "))) {
             int token_cnt = 0;
             char **tokens = split_string(line, &token_cnt);
             if (token_cnt == 0) {
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
                     printf("%s\n", value_repr(&m->stack[m->sp]));
                 }
             } else {
-                error("Exception: %s\n", exception);
+                ERROR("Exception: %s\n", exception);
             }
             free(tokens);
         }

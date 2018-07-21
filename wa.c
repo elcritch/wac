@@ -662,7 +662,7 @@ bool interpret(Module *m) {
                       m->table.entries, val, (uint32_t)m->table.entries - val);
                 val = val - (uint32_t)m->table.entries;
             }
-            if (val < 0 || val >= m->table.maximum) {
+            if (val >= m->table.maximum) {
                 sprintf(exception, "undefined element 0x%x", val);
                 return false;
             }
@@ -1565,6 +1565,8 @@ bool interpret(Module *m) {
             return false;
         }
     }
+
+    return false;
 }
 
 void run_init_expr(Module *m, uint8_t type, uint32_t *pc) {
@@ -1651,7 +1653,7 @@ Module *load_module(char *path, Options options) {
                 uint32_t memorysize = read_LEB(bytes, &pos, 32);
                 uint32_t tablesize = read_LEB(bytes, &pos, 32);
             } else {
-                error("Ignoring unknown custom section '%s'\n", name);
+                ERROR("Ignoring unknown custom section '%s'\n", name);
             }
             pos = end_pos;
             break;
