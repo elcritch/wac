@@ -73,3 +73,6 @@ examples_c/%.wast: examples_c/%.wasm
 examples_c/%: examples_c/%.c
 	$(CC) $< -o $@ -lSDL2 -lSDL2_image -lGL -lglut
 
+format:
+	find . -iname "*.(c|h)" | xargs -I% clang-format -i %
+
